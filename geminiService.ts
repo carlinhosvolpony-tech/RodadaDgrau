@@ -1,16 +1,23 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Match } from "./types";
 
-// Always use the API_KEY directly from process.env.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Verificação de segurança para o ambiente de execução
+const API_KEY = typeof process !== 'undefined' && process.env ? process.env.API_KEY : '';
+
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 export const getVolponyIndicaPicks = async (matches: Match[]): Promise<('H' | 'D' | 'A')[]> => {
   try {
+    if (!API_KEY) {
+      console.warn("API_KEY não configurada. Usando palpites aleatórios.");
+      return Array(12).fill(null).map(() => (['H', 'D', 'A'][Math.floor(Math.random() * 3)])) as ('H' | 'D' | 'A')[];
+    }
+
     const prompt = `Como um especialista em futebol (Volpony Indica), analise os seguintes 12 confrontos e sugira o palpite mais provável para cada um (H para Home/Casa, D para Draw/Empate, A para Away/Fora). 
     Retorne APENAS um array de strings com os 12 palpites na ordem.
     Jogos: ${matches.map((m, i) => `${i+1}. ${m.homeTeam} vs ${m.awayTeam} (${m.league})`).join(', ')}`;
 
-    // Generate content using a structured schema for JSON output.
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
@@ -26,7 +33,6 @@ export const getVolponyIndicaPicks = async (matches: Match[]): Promise<('H' | 'D
       }
     });
 
-    // Access the generated text directly from the text property.
     const text = response.text;
     if (!text) return Array(12).fill('H');
 
@@ -35,7 +41,6 @@ export const getVolponyIndicaPicks = async (matches: Match[]): Promise<('H' | 'D
       return result as ('H' | 'D' | 'A')[];
     }
     
-    // Fallback in case of AI error or format mismatch
     return Array(12).fill('H');
   } catch (error) {
     console.error("Erro no Volpony Indica:", error);

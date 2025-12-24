@@ -12,13 +12,23 @@ import TicketHistory from './components/TicketHistory';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('volpony_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('volpony_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error("Erro ao carregar usuário:", e);
+      return null;
+    }
   });
 
   const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem('volpony_users');
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('volpony_users');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error("Erro ao carregar usuários:", e);
+    }
+    
     const admin: User = {
       id: 'admin-1',
       name: 'Administrador Geral',
@@ -32,23 +42,39 @@ const App: React.FC = () => {
   });
 
   const [matches, setMatches] = useState<Match[]>(() => {
-    const saved = localStorage.getItem('volpony_matches');
-    return saved ? JSON.parse(saved) : INITIAL_MATCHES;
+    try {
+      const saved = localStorage.getItem('volpony_matches');
+      return saved ? JSON.parse(saved) : INITIAL_MATCHES;
+    } catch (e) {
+      return INITIAL_MATCHES;
+    }
   });
 
   const [tickets, setTickets] = useState<Ticket[]>(() => {
-    const saved = localStorage.getItem('volpony_tickets');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('volpony_tickets');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
   });
 
   const [balanceRequests, setBalanceRequests] = useState<BalanceRequest[]>(() => {
-    const saved = localStorage.getItem('volpony_balance_reqs');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('volpony_balance_reqs');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
   });
 
   const [settings, setSettings] = useState<AppSettings>(() => {
-    const saved = localStorage.getItem('volpony_settings');
-    return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    try {
+      const saved = localStorage.getItem('volpony_settings');
+      return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    } catch (e) {
+      return DEFAULT_SETTINGS;
+    }
   });
 
   const [view, setView] = useState<'BET' | 'ADMIN' | 'BOOKIE' | 'WALLET' | 'TICKETS'>('BET');
