@@ -31,6 +31,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setTickets(prev => prev.map(t => t.id === id ? { ...t, status } : t));
   };
 
+  const handleDeleteTicket = (id: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este bilhete permanentemente?")) {
+      setTickets(prev => prev.filter(t => t.id !== id));
+      alert("Bilhete removido com sucesso.");
+    }
+  };
+
   const handleActionRequest = (id: string, status: 'APPROVED' | 'REJECTED') => {
     const req = balanceRequests.find(r => r.id === id);
     if (!req) return;
@@ -274,22 +281,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {tab === 'TICKETS' && (
         <div className="space-y-4">
-          <h3 className="text-sm font-black text-emerald-400 uppercase mb-4 tracking-widest">Bilhetes Globais / Diretos</h3>
-          {tickets.filter(t => !t.parentId).map(t => (
-            <div key={t.id} className="bg-black/60 p-4 rounded-2xl flex justify-between items-center border border-emerald-500/10">
+          <h3 className="text-sm font-black text-emerald-400 uppercase mb-4 tracking-widest">Controle de Bilhetes</h3>
+          {tickets.map(t => (
+            <div key={t.id} className="bg-black/60 p-4 rounded-2xl flex flex-col md:flex-row justify-between items-center border border-emerald-500/10 gap-4">
               <div>
                 <span className="font-black text-emerald-400">#{t.id}</span>
-                <div className="text-xs text-white">{t.userName} <span className="text-[10px] text-gray-500 uppercase">(DIRETO)</span></div>
-                <div className="text-[10px] text-gray-500">{new Date(t.date).toLocaleString()}</div>
+                <div className="text-xs text-white">
+                  {t.userName} 
+                  {t.parentId ? (
+                    <span className="text-[8px] text-blue-400 uppercase ml-2">(Cambista: {users.find(u => u.id === t.parentId)?.name})</span>
+                  ) : (
+                    <span className="text-[8px] text-emerald-500 uppercase ml-2">(DIRETO)</span>
+                  )}
+                </div>
+                <div className="text-[10px] text-gray-500">{new Date(t.date).toLocaleString()} - Status: <span className="uppercase font-bold">{t.status}</span></div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => handleActionTicket(t.id, 'VALIDATED')} className="bg-emerald-600 px-3 py-1 rounded text-xs font-bold hover:bg-emerald-500 text-white">Validar</button>
-                <button onClick={() => handleActionTicket(t.id, 'WON')} className="bg-emerald-500 text-black px-3 py-1 rounded text-xs font-bold hover:bg-emerald-400">Ganhou</button>
-                <button onClick={() => handleActionTicket(t.id, 'LOST')} className="bg-red-600 px-3 py-1 rounded text-xs font-bold hover:bg-red-500 text-white">Perdeu</button>
+              <div className="flex flex-wrap justify-end gap-2">
+                <button onClick={() => handleActionTicket(t.id, 'VALIDATED')} className="bg-emerald-600 px-3 py-1.5 rounded text-[10px] font-black uppercase hover:bg-emerald-500 text-white transition-all">Validar</button>
+                <button onClick={() => handleActionTicket(t.id, 'WON')} className="bg-emerald-500 text-black px-3 py-1.5 rounded text-[10px] font-black uppercase hover:bg-emerald-400 transition-all">Ganhou</button>
+                <button onClick={() => handleActionTicket(t.id, 'LOST')} className="bg-gray-600 px-3 py-1.5 rounded text-[10px] font-black uppercase hover:bg-gray-500 text-white transition-all">Perdeu</button>
+                <button onClick={() => handleDeleteTicket(t.id)} className="bg-red-600 px-3 py-1.5 rounded text-[10px] font-black uppercase hover:bg-red-500 text-white transition-all" title="Excluir Bilhete"><i className="fa-solid fa-trash-can"></i></button>
               </div>
             </div>
           ))}
-          {tickets.filter(t => !t.parentId).length === 0 && <p className="text-center py-10 text-gray-600 italic">Nenhum bilhete direto pendente.</p>}
+          {tickets.length === 0 && <p className="text-center py-10 text-gray-600 italic">Nenhum bilhete encontrado no sistema.</p>}
         </div>
       )}
 
