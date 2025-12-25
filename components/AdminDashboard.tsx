@@ -20,8 +20,10 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
   users, setUsers, matches, setMatches, tickets, setTickets, balanceRequests, setBalanceRequests, settings, setSettings, currentUser, setCurrentUser 
 }) => {
-  const [tab, setTab] = useState<'MATCHES' | 'USERS' | 'TICKETS' | 'FINANCE' | 'SETTINGS'>('MATCHES');
+  const [tab, setTab] = useState<'MATCHES' | 'USERS' | 'TICKETS' | 'FINANCE' | 'SETTINGS' | 'RAFFLE'>('MATCHES');
   const [newPassword, setNewPassword] = useState('');
+  const [raffleWinner, setRaffleWinner] = useState<Ticket | null>(null);
+  const [isRaffling, setIsRaffling] = useState(false);
 
   const handleUpdateMatch = (id: string, field: keyof Match, value: string) => {
     setMatches(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
@@ -36,6 +38,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setTickets(prev => prev.filter(t => t.id !== id));
       alert("Bilhete removido com sucesso.");
     }
+  };
+
+  const handlePerformRaffle = () => {
+    const eligibleTickets = tickets.filter(t => t.status === 'VALIDATED' || t.status === 'WON');
+    
+    if (eligibleTickets.length === 0) {
+      alert("Não existem bilhetes validados para o sorteio!");
+      return;
+    }
+
+    setIsRaffling(true);
+    setRaffleWinner(null);
+
+    // Simular animação de sorteio
+    setTimeout(() => {
+      const randomIndex = Math.floor(Math.random() * eligibleTickets.length);
+      setRaffleWinner(eligibleTickets[randomIndex]);
+      setIsRaffling(false);
+    }, 2000);
   };
 
   const handleActionRequest = (id: string, status: 'APPROVED' | 'REJECTED') => {
@@ -144,6 +165,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             { id: 'USERS', icon: 'fa-users', label: 'Usuários' },
             { id: 'FINANCE', icon: 'fa-hand-holding-dollar', label: 'Financeiro' },
             { id: 'TICKETS', icon: 'fa-ticket', label: 'Bilhetes' },
+            { id: 'RAFFLE', icon: 'fa-clover', label: 'Sorteio' },
             { id: 'SETTINGS', icon: 'fa-gear', label: 'Geral' },
           ].map((t) => (
             <button
@@ -156,6 +178,49 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           ))}
         </div>
       </div>
+
+      {tab === 'RAFFLE' && (
+        <div className="flex flex-col items-center py-10 space-y-8">
+          <div className="text-center">
+             <h3 className="text-3xl font-black text-white italic uppercase mb-2">Sorteio de <span className="text-emerald-500">Prêmios</span></h3>
+             <p className="text-gray-500 text-sm font-bold">Apenas bilhetes <span className="text-emerald-400">PAGOS</span> participam automaticamente.</p>
+          </div>
+
+          <div className="relative w-full max-w-md h-64 glass rounded-3xl border-2 border-emerald-500/20 flex flex-col items-center justify-center p-8 overflow-hidden">
+             {isRaffling ? (
+               <div className="flex flex-col items-center gap-4">
+                 <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                 <span className="text-emerald-500 font-black uppercase tracking-widest animate-pulse">Sorteando...</span>
+               </div>
+             ) : raffleWinner ? (
+               <div className="text-center animate-in zoom-in duration-500">
+                 <div className="bg-emerald-500 text-black px-4 py-1 rounded-full text-[10px] font-black uppercase mb-4 inline-block">Vencedor Encontrado!</div>
+                 <div className="text-5xl font-black text-white mb-2 tracking-tighter">#{raffleWinner.id}</div>
+                 <div className="text-emerald-400 font-bold uppercase tracking-wider">{raffleWinner.userName}</div>
+                 <div className="text-[10px] text-gray-500 mt-2">Bilhete de R$ {raffleWinner.cost.toFixed(2)}</div>
+                 <button onClick={() => setRaffleWinner(null)} className="mt-6 text-gray-500 hover:text-white transition-colors uppercase text-[8px] font-black tracking-widest">Limpar Resultado</button>
+               </div>
+             ) : (
+               <div className="flex flex-col items-center opacity-30">
+                 <i className="fa-solid fa-clover text-6xl mb-4 text-emerald-500"></i>
+                 <span className="text-[10px] font-black uppercase tracking-[0.3em]">Aguardando Sorteio</span>
+               </div>
+             )}
+          </div>
+
+          <button 
+            onClick={handlePerformRaffle}
+            disabled={isRaffling}
+            className="bg-emerald-500 text-black px-12 py-4 rounded-2xl font-black text-xl uppercase tracking-widest shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+          >
+            REALIZAR SORTEIO
+          </button>
+          
+          <div className="text-[10px] font-bold text-gray-600 uppercase">
+             Bilhetes Elegíveis: <span className="text-emerald-500">{tickets.filter(t => t.status === 'VALIDATED' || t.status === 'WON').length}</span>
+          </div>
+        </div>
+      )}
 
       {tab === 'FINANCE' && (
         <div className="space-y-8">
