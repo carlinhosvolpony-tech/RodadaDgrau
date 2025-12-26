@@ -15,14 +15,14 @@ const BettingArea: React.FC<BettingAreaProps> = ({ matches, settings, onPlaceTic
   const [isAiLoading, setIsAiLoading] = useState(false);
 
   const handlePick = (index: number, value: 'H' | 'D' | 'A') => {
-    if (settings.bettingBlocked) return;
+    if (settings.betting_blocked) return;
     const newPicks = [...picks];
     newPicks[index] = value;
     setPicks(newPicks);
   };
 
   const handleAiFill = async () => {
-    if (settings.bettingBlocked) return;
+    if (settings.betting_blocked) return;
     setIsAiLoading(true);
     const aiPicks = await getVolponyIndicaPicks(matches);
     setPicks(aiPicks);
@@ -30,18 +30,18 @@ const BettingArea: React.FC<BettingAreaProps> = ({ matches, settings, onPlaceTic
   };
 
   const isComplete = picks.every(p => p !== null);
-  const hasBalance = userBalance >= settings.ticketPrice;
+  const hasBalance = userBalance >= settings.ticket_price;
 
   return (
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-10">
         <h2 className="text-4xl md:text-5xl font-black italic text-white mb-2 tracking-tight uppercase">CRAVE O <span className="text-emerald-500">12/12</span></h2>
         <p className="text-emerald-500 font-bold bg-emerald-500/10 inline-block px-4 py-1 rounded-full border border-emerald-500/30 animate-pulse-subtle">
-          PRÊMIO ACUMULADO: R$ {settings.jackpotPrize.toLocaleString()}
+          PRÊMIO ACUMULADO: R$ {settings.jackpot_prize.toLocaleString()}
         </p>
       </div>
 
-      {settings.bettingBlocked && (
+      {settings.betting_blocked && (
         <div className="bg-red-500/20 border border-red-500 text-red-500 p-4 rounded-xl mb-6 text-center font-bold">
           <i className="fa-solid fa-circle-exclamation mr-2"></i> AS APOSTAS ESTÃO BLOQUEADAS NO MOMENTO. OS JOGOS JÁ INICIARAM.
         </div>
@@ -50,7 +50,7 @@ const BettingArea: React.FC<BettingAreaProps> = ({ matches, settings, onPlaceTic
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 glass p-4 rounded-xl border border-emerald-500/10">
         <div className="flex flex-col items-start gap-1">
           <div className="flex items-center gap-2">
-            <span className="text-gray-400 font-bold text-sm">Valor: <span className="text-white">R$ {settings.ticketPrice.toFixed(2)}</span></span>
+            <span className="text-gray-400 font-bold text-sm">Valor: <span className="text-white">R$ {settings.ticket_price.toFixed(2)}</span></span>
             {hasBalance ? (
               <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-emerald-500/30">
                 <i className="fa-solid fa-bolt mr-1"></i> Validação Automática
@@ -68,7 +68,7 @@ const BettingArea: React.FC<BettingAreaProps> = ({ matches, settings, onPlaceTic
         
         <button 
           onClick={handleAiFill}
-          disabled={isAiLoading || settings.bettingBlocked}
+          disabled={isAiLoading || settings.betting_blocked}
           className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-green-500 px-4 py-2 rounded-lg font-black text-sm uppercase tracking-tighter hover:scale-105 active:scale-95 transition-all disabled:opacity-50 w-full md:w-auto justify-center text-black"
         >
           <i className={`fa-solid ${isAiLoading ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'}`}></i>
@@ -87,7 +87,7 @@ const BettingArea: React.FC<BettingAreaProps> = ({ matches, settings, onPlaceTic
             <div className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-6 flex-1 w-full justify-center md:justify-start">
                 <div className="flex flex-col items-center gap-1 flex-1 text-center md:text-left md:items-start">
-                  <span className="text-lg font-bold truncate w-full text-white">{match.homeTeam}</span>
+                  <span className="text-lg font-bold truncate w-full text-white">{match.home_team}</span>
                   <span className="text-[10px] uppercase text-gray-500 font-black">Casa</span>
                 </div>
                 
@@ -96,7 +96,7 @@ const BettingArea: React.FC<BettingAreaProps> = ({ matches, settings, onPlaceTic
                 </div>
 
                 <div className="flex flex-col items-center gap-1 flex-1 text-center md:text-right md:items-end">
-                  <span className="text-lg font-bold truncate w-full text-white">{match.awayTeam}</span>
+                  <span className="text-lg font-bold truncate w-full text-white">{match.away_team}</span>
                   <span className="text-[10px] uppercase text-gray-500 font-black">Fora</span>
                 </div>
               </div>
@@ -110,7 +110,7 @@ const BettingArea: React.FC<BettingAreaProps> = ({ matches, settings, onPlaceTic
                   <button
                     key={opt.value}
                     onClick={() => handlePick(idx, opt.value)}
-                    disabled={settings.bettingBlocked}
+                    disabled={settings.betting_blocked}
                     className={`w-16 h-12 rounded-xl flex flex-col items-center justify-center transition-all border ${
                       picks[idx] === opt.value
                         ? 'bg-emerald-500 text-black border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
@@ -130,9 +130,9 @@ const BettingArea: React.FC<BettingAreaProps> = ({ matches, settings, onPlaceTic
       <div className="sticky bottom-6 mt-8 flex justify-center">
         <button
           onClick={() => isComplete && onPlaceTicket(picks as ('H' | 'D' | 'A')[])}
-          disabled={!isComplete || settings.bettingBlocked}
+          disabled={!isComplete || settings.betting_blocked}
           className={`px-12 py-4 rounded-2xl font-black text-xl uppercase tracking-widest shadow-2xl transition-all ${
-            isComplete && !settings.bettingBlocked
+            isComplete && !settings.betting_blocked
               ? 'bg-emerald-500 text-black hover:scale-105 active:scale-95 shadow-emerald-500/30'
               : 'bg-emerald-950 text-emerald-800 border border-emerald-900/50 cursor-not-allowed opacity-50'
           }`}

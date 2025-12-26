@@ -22,35 +22,30 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
-  // 1. CARREGAMENTO INICIAL RESILIENTE
   useEffect(() => {
     const initApp = async () => {
       try {
-        // Tentar carregar configurações
-        const { data: s, error: sError } = await supabase.from('app_settings').select('*').single();
-        if (s) setSettings(s);
-        else if (sError) console.warn("Usando configurações padrão (DB offline ou vazio)");
+        const { data: s } = await supabase.from('app_settings').select('*').single();
+        if (s) setSettings(s as AppSettings);
 
-        // Tentar carregar partidas
-        const { data: m, error: mError } = await supabase.from('matches').select('*').order('display_order');
+        const { data: m } = await supabase.from('matches').select('*').order('display_order');
         if (m && m.length > 0) setMatches(m);
         else setMatches(INITIAL_MATCHES);
 
-        // Tentar carregar tickets e usuários
         const { data: t } = await supabase.from('tickets').select('*').order('created_at', { ascending: false });
         const { data: u } = await supabase.from('users').select('*');
+        const { data: br } = await supabase.from('balance_requests').select('*');
         
         if (t) setTickets(t);
         if (u) setUsers(u);
+        if (br) setBalanceRequests(br);
 
-        // Checar sessão local
         const savedUser = localStorage.getItem('volpony_user');
         if (savedUser) setCurrentUser(JSON.parse(savedUser));
         
       } catch (err) {
         console.error("Erro na conexão Supabase:", err);
         setConnectionError("Modo Offline: Verifique as chaves do Supabase.");
-        // Fallbacks já definidos nos states iniciais
       } finally {
         setIsLoading(false);
       }
@@ -59,7 +54,6 @@ const App: React.FC = () => {
     initApp();
   }, []);
 
-  // 2. SINCRONIZAÇÃO EM TEMPO REAL
   useEffect(() => {
     if (!supabase) return;
 
@@ -87,6 +81,10 @@ const App: React.FC = () => {
           }
         }
       })
+      .on('postgres_changes', { event: '*', table: 'balance_requests' }, (payload) => {
+        if (payload.eventType === 'INSERT') setBalanceRequests(prev => [payload.new as BalanceRequest, ...prev]);
+        if (payload.eventType === 'UPDATE') setBalanceRequests(prev => prev.map(br => br.id === payload.new.id ? { ...br, ...payload.new } : br));
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -102,31 +100,30 @@ const App: React.FC = () => {
     if (!currentUser || !settings) return;
     
     const ticketId = Math.random().toString(36).substr(2, 9).toUpperCase();
-    const isAutoPay = currentUser.balance >= settings.ticketPrice;
+    const isAutoPay = currentUser.balance >= settings.ticket_price;
     
     const newTicket = {
       id: ticketId,
       user_id: currentUser.id,
       user_name: currentUser.name,
       picks,
-      match_info: matches.map(m => ({ home: m.homeTeam, away: m.awayTeam })),
-      cost: settings.ticketPrice,
-      potential_prize: settings.jackpotPrize,
+      match_info: matches.map(m => ({ home: m.home_team, away: m.away_team })),
+      cost: settings.ticket_price,
+      potential_prize: settings.jackpot_prize,
       status: isAutoPay ? 'VALIDATED' : 'PENDING',
-      parent_id: currentUser.parentId,
+      parent_id: currentUser.parent_id,
+      created_at: Date.now()
     };
 
-    // Tentar persistir no DB, caso falhe, avisa o usuário mas mantém local
     const { error } = await supabase.from('tickets').insert([newTicket]);
 
     if (!error && isAutoPay) {
-      const newBalance = currentUser.balance - settings.ticketPrice;
+      const newBalance = currentUser.balance - settings.ticket_price;
       await supabase.from('users').update({ balance: newBalance }).eq('id', currentUser.id);
     }
 
     if (error) {
-        console.error("Erro no DB:", error);
-        alert("Erro de conexão. Verifique se o banco de dados está configurado corretamente.");
+        alert("Erro de conexão. Verifique o banco de dados.");
     } else {
         setView('TICKETS');
     }
@@ -183,11 +180,11 @@ const App: React.FC = () => {
           />
         )}
         {view === 'WALLET' && <Wallet user={currentUser} settings={settings} users={users} onBalanceAdded={async (amt) => {
-           await supabase.from('balance_requests').insert([{ user_id: currentUser.id, user_name: currentUser.name, amount: amt, status: 'PENDING', parent_id: currentUser.parentId }]);
+           await supabase.from('balance_requests').insert([{ user_id: currentUser.id, user_name: currentUser.name, amount: amt, status: 'PENDING', parent_id: currentUser.parent_id }]);
         }} />}
         {view === 'TICKETS' && (
           <TicketHistory 
-            tickets={tickets.filter(t => t.userId === currentUser.id)}
+            tickets={tickets.filter(t => t.user_id === currentUser.id)}
             onDelete={async (id) => await supabase.from('tickets').delete().eq('id', id)}
           />
         )}
