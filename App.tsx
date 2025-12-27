@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Match, Ticket, AppSettings, BalanceRequest } from './types';
-import { supabase } from './supabaseClient';
 import { INITIAL_MATCHES, DEFAULT_SETTINGS } from './constants';
 import Navbar from './components/Navbar';
 import BettingArea from './components/BettingArea';
@@ -12,146 +11,145 @@ import Wallet from './components/Wallet';
 import TicketHistory from './components/TicketHistory';
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [balanceRequests, setBalanceRequests] = useState<BalanceRequest[]>([]);
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [view, setView] = useState<'BET' | 'ADMIN' | 'BOOKIE' | 'WALLET' | 'TICKETS'>('BET');
-  const [isLoading, setIsLoading] = useState(true);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('volpony_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error("Erro ao carregar usuário:", e);
+      return null;
+    }
+  });
 
-  useEffect(() => {
-    const initApp = async () => {
-      try {
-        const { data: s } = await supabase.from('app_settings').select('*').single();
-        if (s) setSettings(s as AppSettings);
-
-        const { data: m } = await supabase.from('matches').select('*').order('display_order');
-        if (m && m.length > 0) setMatches(m);
-        else setMatches(INITIAL_MATCHES);
-
-        const { data: t } = await supabase.from('tickets').select('*').order('created_at', { ascending: false });
-        const { data: u } = await supabase.from('users').select('*');
-        const { data: br } = await supabase.from('balance_requests').select('*');
-        
-        if (t) setTickets(t);
-        if (u) setUsers(u);
-        if (br) setBalanceRequests(br);
-
-        const savedUser = localStorage.getItem('volpony_user');
-        if (savedUser) setCurrentUser(JSON.parse(savedUser));
-        
-      } catch (err) {
-        console.error("Erro na conexão Supabase:", err);
-        setConnectionError("Modo Offline: Verifique as chaves do Supabase.");
-      } finally {
-        setIsLoading(false);
-      }
+  const [users, setUsers] = useState<User[]>(() => {
+    try {
+      const saved = localStorage.getItem('volpony_users');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error("Erro ao carregar usuários:", e);
+    }
+    
+    const admin: User = {
+      id: 'admin-1',
+      name: 'Administrador Geral',
+      username: 'admin',
+      password: 'admin',
+      role: UserRole.ADMIN,
+      balance: 0,
+      createdAt: Date.now()
     };
+    return [admin];
+  });
 
-    initApp();
-  }, []);
+  const [matches, setMatches] = useState<Match[]>(() => {
+    try {
+      const saved = localStorage.getItem('volpony_matches');
+      return saved ? JSON.parse(saved) : INITIAL_MATCHES;
+    } catch (e) {
+      return INITIAL_MATCHES;
+    }
+  });
+
+  const [tickets, setTickets] = useState<Ticket[]>(() => {
+    try {
+      const saved = localStorage.getItem('volpony_tickets');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [balanceRequests, setBalanceRequests] = useState<BalanceRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem('volpony_balance_reqs');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    try {
+      const saved = localStorage.getItem('volpony_settings');
+      return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    } catch (e) {
+      return DEFAULT_SETTINGS;
+    }
+  });
+
+  const [view, setView] = useState<'BET' | 'ADMIN' | 'BOOKIE' | 'WALLET' | 'TICKETS'>('BET');
 
   useEffect(() => {
-    if (!supabase) return;
+    localStorage.setItem('volpony_user', JSON.stringify(currentUser));
+    localStorage.setItem('volpony_users', JSON.stringify(users));
+    localStorage.setItem('volpony_matches', JSON.stringify(matches));
+    localStorage.setItem('volpony_tickets', JSON.stringify(tickets));
+    localStorage.setItem('volpony_balance_reqs', JSON.stringify(balanceRequests));
+    localStorage.setItem('volpony_settings', JSON.stringify(settings));
+  }, [currentUser, users, matches, tickets, balanceRequests, settings]);
 
-    const channel = supabase.channel('global-sync')
-      .on('postgres_changes', { event: '*', table: 'app_settings' }, (payload) => {
-        if (payload.new) setSettings(payload.new as AppSettings);
-      })
-      .on('postgres_changes', { event: '*', table: 'matches' }, (payload) => {
-        if (payload.eventType === 'UPDATE') {
-          setMatches(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
-        }
-      })
-      .on('postgres_changes', { event: '*', table: 'tickets' }, (payload) => {
-        if (payload.eventType === 'INSERT') setTickets(prev => [payload.new as Ticket, ...prev]);
-        if (payload.eventType === 'UPDATE') setTickets(prev => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
-        if (payload.eventType === 'DELETE') setTickets(prev => prev.filter(t => t.id !== payload.old.id));
-      })
-      .on('postgres_changes', { event: '*', table: 'users' }, (payload) => {
-        if (payload.eventType === 'UPDATE') {
-          setUsers(prev => prev.map(u => u.id === payload.new.id ? { ...u, ...payload.new } : u));
-          if (currentUser?.id === payload.new.id) {
-            const updated = payload.new as User;
-            setCurrentUser(updated);
-            localStorage.setItem('volpony_user', JSON.stringify(updated));
-          }
-        }
-      })
-      .on('postgres_changes', { event: '*', table: 'balance_requests' }, (payload) => {
-        if (payload.eventType === 'INSERT') setBalanceRequests(prev => [payload.new as BalanceRequest, ...prev]);
-        if (payload.eventType === 'UPDATE') setBalanceRequests(prev => prev.map(br => br.id === payload.new.id ? { ...br, ...payload.new } : br));
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [currentUser]);
-
+  const handleLogin = (user: User) => setCurrentUser(user);
   const handleLogout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('volpony_user');
     setView('BET');
   };
 
-  const handlePlaceTicket = async (picks: ('H' | 'D' | 'A')[]) => {
-    if (!currentUser || !settings) return;
+  const handlePlaceTicket = (picks: ('H' | 'D' | 'A')[]) => {
+    if (!currentUser) return;
     
-    const ticketId = Math.random().toString(36).substr(2, 9).toUpperCase();
-    const isAutoPay = currentUser.balance >= settings.ticket_price;
-    
-    const newTicket = {
-      id: ticketId,
-      user_id: currentUser.id,
-      user_name: currentUser.name,
+    let ticketStatus: Ticket['status'] = 'PENDING';
+    let updatedBalance = currentUser.balance;
+
+    if (currentUser.balance >= settings.ticketPrice) {
+      updatedBalance -= settings.ticketPrice;
+      ticketStatus = 'VALIDATED';
+    }
+
+    const newTicket: Ticket = {
+      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+      userId: currentUser.id,
+      userName: currentUser.name,
       picks,
-      match_info: matches.map(m => ({ home: m.home_team, away: m.away_team })),
-      cost: settings.ticket_price,
-      potential_prize: settings.jackpot_prize,
-      status: isAutoPay ? 'VALIDATED' : 'PENDING',
-      parent_id: currentUser.parent_id,
-      created_at: Date.now()
+      matchInfo: matches.map(m => ({ home: m.homeTeam, away: m.awayTeam })),
+      cost: settings.ticketPrice,
+      potentialPrize: settings.jackpotPrize,
+      status: ticketStatus,
+      date: Date.now(),
+      parentId: currentUser.parentId
     };
 
-    const { error } = await supabase.from('tickets').insert([newTicket]);
-
-    if (!error && isAutoPay) {
-      const newBalance = currentUser.balance - settings.ticket_price;
-      await supabase.from('users').update({ balance: newBalance }).eq('id', currentUser.id);
-    }
-
-    if (error) {
-        alert("Erro de conexão. Verifique o banco de dados.");
-    } else {
-        setView('TICKETS');
-    }
+    setTickets(prev => [newTicket, ...prev]);
+    
+    const updatedUser = { ...currentUser, balance: updatedBalance };
+    setCurrentUser(updatedUser);
+    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    
+    setView('TICKETS');
+    if (ticketStatus === 'VALIDATED') alert("Bilhete Validado automaticamente!");
+    else alert("Bilhete gerado! Pague ao seu cambista para validar.");
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-black">
-        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent animate-spin rounded-full mb-4"></div>
-        <h2 className="text-emerald-500 font-black uppercase tracking-widest text-xs animate-pulse">Entrando no Estádio...</h2>
-      </div>
-    );
-  }
+  const handleRequestBalance = (amount: number) => {
+    if (!currentUser) return;
+    const newReq: BalanceRequest = {
+      id: Math.random().toString(36).substr(2, 5).toUpperCase(),
+      userId: currentUser.id,
+      userName: currentUser.name,
+      amount,
+      status: 'PENDING',
+      date: Date.now(),
+      parentId: currentUser.parentId
+    };
+    setBalanceRequests(prev => [newReq, ...prev]);
+  };
 
   if (!currentUser) {
-    return <Login onLogin={(u) => { setCurrentUser(u); localStorage.setItem('volpony_user', JSON.stringify(u)); }} users={users} setUsers={setUsers} />;
+    return <Login onLogin={handleLogin} users={users} setUsers={setUsers} />;
   }
 
   return (
     <div className="stadium-bg min-h-screen">
       <Navbar user={currentUser} onLogout={handleLogout} setView={setView} activeView={view} />
-      
-      {connectionError && (
-          <div className="bg-amber-500/20 text-amber-500 text-[10px] font-black uppercase py-1 text-center border-b border-amber-500/10">
-              <i className="fa-solid fa-triangle-exclamation mr-2"></i> {connectionError}
-          </div>
-      )}
-
       <main className="container mx-auto px-4 py-8">
         {view === 'BET' && (
           <BettingArea 
@@ -179,13 +177,11 @@ const App: React.FC = () => {
             settings={settings}
           />
         )}
-        {view === 'WALLET' && <Wallet user={currentUser} settings={settings} users={users} onBalanceAdded={async (amt) => {
-           await supabase.from('balance_requests').insert([{ user_id: currentUser.id, user_name: currentUser.name, amount: amt, status: 'PENDING', parent_id: currentUser.parent_id }]);
-        }} />}
+        {view === 'WALLET' && <Wallet user={currentUser} settings={settings} users={users} onBalanceAdded={handleRequestBalance} />}
         {view === 'TICKETS' && (
           <TicketHistory 
-            tickets={tickets.filter(t => t.user_id === currentUser.id)}
-            onDelete={async (id) => await supabase.from('tickets').delete().eq('id', id)}
+            tickets={tickets.filter(t => t.userId === currentUser.id)}
+            onDelete={(id) => setTickets(prev => prev.filter(t => t.id !== id))}
           />
         )}
       </main>

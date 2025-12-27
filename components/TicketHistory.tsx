@@ -23,10 +23,12 @@ const TicketHistory: React.FC<TicketHistoryProps> = ({ tickets, onDelete }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
           {tickets.map(t => (
             <div key={t.id} className="relative group">
+              {/* Bilhete Estilo D'GRAU APOSTAS */}
               <div className="bg-white text-black p-4 rounded-sm shadow-2xl font-mono border-t-8 border-emerald-600 relative overflow-hidden">
+                {/* Cabeçalho da Imagem */}
                 <div className="bg-emerald-950 text-emerald-400 p-2 text-center mb-4 rounded-sm">
-                   <div className="text-lg font-black leading-tight uppercase">INVISTA R${t.cost.toFixed(0)}</div>
-                   <div className="text-2xl font-black leading-tight uppercase">E GANHE R${t.potential_prize.toLocaleString()}!</div>
+                   <div className="text-lg font-black leading-tight uppercase">INVISTA R$2</div>
+                   <div className="text-2xl font-black leading-tight uppercase">E GANHE R$1.000!</div>
                 </div>
 
                 <div className="text-center border-b border-black pb-4 mb-4">
@@ -35,17 +37,22 @@ const TicketHistory: React.FC<TicketHistoryProps> = ({ tickets, onDelete }) => {
                    <p className="text-[10px] font-black uppercase">SEU PALPITE CERTO</p>
                 </div>
 
+                <div className="text-[10px] font-black uppercase text-center mb-2 bg-black text-white py-1">
+                   SEU CÓDIGO PODE VALER BRINDES
+                </div>
+
+                {/* Tabela de Apostas */}
                 <div className="border border-black">
                   <div className="grid grid-cols-12 bg-gray-100 border-b border-black font-black text-[10px] text-center">
-                    <div className="col-span-9 border-r border-black p-1 uppercase">Escolha</div>
+                    <div className="col-span-9 border-r border-black p-1">ESCOLHA</div>
                     <div className="col-span-1 border-r border-black p-1">C</div>
                     <div className="col-span-1 border-r border-black p-1">E</div>
                     <div className="col-span-1 p-1">F</div>
                   </div>
                   {t.picks.map((pick, i) => (
                     <div key={i} className="grid grid-cols-12 border-b border-black text-[10px] items-center">
-                      <div className="col-span-9 border-r border-black px-2 py-1 truncate font-bold uppercase">
-                        {t.match_info[i]?.home} X {t.match_info[i]?.away}
+                      <div className="col-span-9 border-r border-black px-2 py-1 truncate font-bold">
+                        {t.matchInfo[i].home} X {t.matchInfo[i].away}
                       </div>
                       <div className="col-span-1 border-r border-black text-center font-black h-full flex items-center justify-center">
                         {pick === 'H' ? 'X' : ''}
@@ -60,10 +67,11 @@ const TicketHistory: React.FC<TicketHistoryProps> = ({ tickets, onDelete }) => {
                   ))}
                 </div>
 
+                {/* Rodapé do Bilhete */}
                 <div className="grid grid-cols-2 mt-4 text-[10px] font-black border-t border-black pt-2 gap-2">
                   <div className="border border-black p-1 flex justify-between">
                     <span>DATA:</span>
-                    <span>{new Date(t.created_at).toLocaleDateString()}</span>
+                    <span>{new Date(t.date).toLocaleDateString()}</span>
                   </div>
                   <div className="border border-black p-1 flex justify-between">
                     <span>CÓDIGO:</span>
@@ -71,6 +79,11 @@ const TicketHistory: React.FC<TicketHistoryProps> = ({ tickets, onDelete }) => {
                   </div>
                 </div>
 
+                <div className="mt-4 text-center text-[8px] font-bold opacity-50 uppercase">
+                   Obrigado por apostar conosco! Boa Sorte.
+                </div>
+                
+                {/* Selo de Status */}
                 <div className={`absolute top-20 right-[-30px] rotate-45 px-10 py-1 text-[10px] font-black uppercase text-center ${
                   t.status === 'VALIDATED' ? 'bg-green-600 text-white' : 
                   t.status === 'WON' ? 'bg-yellow-400 text-black' : 
@@ -80,6 +93,7 @@ const TicketHistory: React.FC<TicketHistoryProps> = ({ tickets, onDelete }) => {
                 </div>
               </div>
 
+              {/* Botão de Excluir (App Overlay) */}
               <button 
                 onClick={() => onDelete(t.id)}
                 className="absolute -top-4 -right-4 bg-red-500 w-10 h-10 rounded-full shadow-lg border-4 border-[#050505] text-white hover:scale-110 transition-transform"

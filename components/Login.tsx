@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
-import { MASTER_ADMIN } from '../constants';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -24,7 +23,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, users, setUsers }) => {
         return;
       }
       
-      // Fixed: changed createdAt to created_at to match User type definition.
       const newUser: User = {
         id: Math.random().toString(36).substr(2, 9),
         name,
@@ -32,28 +30,20 @@ const Login: React.FC<LoginProps> = ({ onLogin, users, setUsers }) => {
         password,
         role: UserRole.CLIENT,
         balance: 0,
-        created_at: Date.now()
+        createdAt: Date.now()
       };
       
       setUsers([...users, newUser]);
       onLogin(newUser);
     } else {
-      // 1. Tentar encontrar no banco carregado
-      let user = users.find(u => 
+      const user = users.find(u => 
         u.username.toLowerCase() === username.toLowerCase() && 
         u.password === password
       );
-
-      // 2. Fallback para Master Admin se não houver nenhum admin no banco
-      const hasAnyAdmin = users.some(u => u.role === UserRole.ADMIN);
-      if (!user && !hasAnyAdmin && username.toLowerCase() === MASTER_ADMIN.username && password === MASTER_ADMIN.password) {
-        user = MASTER_ADMIN;
-      }
-
       if (user) {
         onLogin(user);
       } else {
-        alert("Usuário ou senha inválidos! Se for o primeiro acesso, use admin / admin123");
+        alert("Usuário ou senha inválidos!");
       }
     }
   };
@@ -97,12 +87,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, users, setUsers }) => {
             {isRegistering ? 'Já sou cadastrado' : 'Não tenho conta, quero criar'}
           </button>
         </div>
-        
-        {!isRegistering && (
-          <p className="mt-8 text-[9px] text-gray-600 text-center uppercase font-bold">
-            Primeiro acesso? Use admin / admin123
-          </p>
-        )}
       </div>
     </div>
   );

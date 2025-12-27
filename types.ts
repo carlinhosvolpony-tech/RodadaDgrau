@@ -12,20 +12,19 @@ export type User = {
   password?: string;
   role: UserRole;
   balance: number;
-  pix_key?: string;
-  created_at: number;
-  parent_id?: string;
-  total_deposits_by_bookie?: number;
+  pixKey?: string;
+  createdAt: number;
+  parentId?: string; // ID do cambista pai
+  totalDepositsByBookie?: number; // Soma de recargas manuais feitas pelo cambista
 };
 
 export type Match = {
   id: string;
   league: string;
-  home_team: string;
-  away_team: string;
+  homeTeam: string;
+  awayTeam: string;
   date: string;
   result?: 'H' | 'D' | 'A';
-  display_order?: number;
 };
 
 export type TicketMatchInfo = {
@@ -35,31 +34,30 @@ export type TicketMatchInfo = {
 
 export type Ticket = {
   id: string;
-  user_id: string;
-  user_name: string;
+  userId: string;
+  userName: string;
   picks: ('H' | 'D' | 'A')[];
-  match_info: TicketMatchInfo[];
+  matchInfo: TicketMatchInfo[]; // Nomes dos times no momento da aposta
   cost: number;
-  potential_prize: number;
+  potentialPrize: number;
   status: 'PENDING' | 'VALIDATED' | 'LOST' | 'WON' | 'CANCELLED';
-  created_at: number;
-  parent_id?: string; 
+  date: number;
+  parentId?: string; 
 };
 
 export type BalanceRequest = {
   id: string;
-  user_id: string;
-  user_name: string;
+  userId: string;
+  userName: string;
   amount: number;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  created_at: number;
-  parent_id?: string;
+  date: number;
+  parentId?: string;
 };
 
 export type AppSettings = {
-  id?: number;
-  pix_key: string;
-  betting_blocked: boolean;
-  ticket_price: number;
-  jackpot_prize: number;
+  pixKey: string;
+  bettingBlocked: boolean;
+  ticketPrice: number;
+  jackpotPrize: number;
 };
